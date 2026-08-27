@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "DiiD Reader Tracker",
+  "version": "1.0",
+  "description": "Tracks reading behavior on selected news sites.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://vnexpress.net/*",
+        "*://*.vnexpress.net/*",
+        "*://dantri.com.vn/*",
+        "*://*.dantri.com.vn/*",
+        "*://tuoitre.vn/*",
+        "*://*.tuoitre.vn/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
