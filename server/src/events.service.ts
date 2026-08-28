@@ -19,7 +19,7 @@ export class EventsService {
       return existing;
     }
 
-    const event = this.eventsRepository.create(eventDto);
+    const event = this.eventsRepository.create(eventDto) as any as Event;
     await this.eventsRepository.save(event);
 
     // Broadcast update
