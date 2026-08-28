@@ -61,3 +61,43 @@ Source (vnexpress.net, dantri.com.vn, tuoitre.vn).
 - Lưu dữ liệu dạng Event Log (Time-series) thay vì cập nhật 1 bản ghi duy nhất.
 - Dùng Background Service Worker làm Proxy / Queue để tránh mất dữ liệu khi rớt mạng.
 - Sử dụng SQLite và TypeORM để dễ test (chỉ cần npm install và npm run start) nhưng vẫn sẵn sàng scale lên MySQL/PostgreSQL.
+
+## Kiến trúc hệ thống
+
+Hệ thống được thiết kế theo mô hình Client-Server kết hợp luồng xử lý dữ liệu theo thời gian thực (Realtime), bao gồm 3 khối thành phần chính:
+
+```mermaid
+graph TD
+    subgraph Client [Chrome Browser]
+        CS[Content Script<br/>Lắng nghe events, tính thời gian]
+        BS[Background Script<br/>Quản lý Queue, xử lý offline]
+        CS -- postMessage --> BS
+    end
+
+    subgraph Backend [Central Server]
+        API[NestJS API<br/>Xử lý logic, RESTful]
+        DB[(SQLite Database)]
+        Socket[Socket.io Server<br/>Pub/Sub Realtime]
+        BS -- HTTP POST /api/events --> API
+        API -- Lưu/Cập nhật dữ liệu --> DB
+        API -- Emit Event --> Socket
+    end
+
+    subgraph Frontend [Dashboard UI]
+        UI[ReactJS App<br/>Hiển thị thống kê & Biểu đồ]
+        SocketClient[Socket.io Client<br/>Nhận dữ liệu realtime]
+        API_Client[Fetch API<br/>Lấy lịch sử đọc báo]
+        
+        Socket -- Push Events --> SocketClient
+        SocketClient --> UI
+        API_Client -- HTTP GET --> API
+        API_Client --> UI
+    end
+```
+
+### Luồng hoạt động (Data Flow)
+
+1. **Thu thập dữ liệu (Content Script):** Khi người dùng truy cập các trang báo mục tiêu, Content Script được inject vào trang. Nó lắng nghe các tương tác của người dùng (`scroll`, `mousemove`, `keydown`) và trạng thái hiển thị (`visibilitychange`) để theo dõi hành vi và tính toán thời gian đọc thực tế.
+2. **Xử lý trung gian (Background Script):** Content Script đẩy dữ liệu sang Background Script. Tại đây, dữ liệu được đưa vào một hàng đợi (Queue) sử dụng `chrome.storage.local`. Cơ chế này đóng vai trò như một proxy cục bộ, giúp lưu trữ tạm sự kiện khi mất kết nối mạng và tự động đồng bộ (sync) lên server ngay khi có mạng trở lại.
+3. **Lưu trữ dữ liệu (Central Server):** Background Script gửi dữ liệu về Server qua HTTP API (`POST /api/events`). NestJS Server tiếp nhận, xác thực, xử lý chống trùng lặp dữ liệu (sử dụng `event_id`), và lưu vào cơ sở dữ liệu SQLite theo dạng chuỗi thời gian (time-series event log).
+4. **Cập nhật Dashboard (Realtime):** Mỗi khi có sự kiện mới được lưu thành công, Server dùng Socket.io để phát thông báo (emit). Dashboard (xây dựng bằng React) liên tục lắng nghe và nhận sự kiện này, từ đó tự động cập nhật lại các chỉ số, timeline, và biểu đồ hiển thị mà không cần người dùng làm mới trang.
