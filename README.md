@@ -22,7 +22,7 @@ Source (vnexpress.net, dantri.com.vn, tuoitre.vn).
   2. Chạy lệnh: `npm install`
   3. Khởi động server: `npm run start:dev`
      (Server sẽ chạy tại `http://localhost:3000`)
-- **API cung cấp:**
+- **API:**
   - `POST /api/events`: Nhận event từ Extension, lưu vào SQLite (xử lý trùng lặp bằng `event_id`).
   - `GET /api/sessions`: Lấy danh sách phiên đọc báo, phục vụ thống kê tổng thời gian.
   - `GET /api/articles`: Truy xuất dữ liệu các bài báo đã đọc.
@@ -30,7 +30,7 @@ Source (vnexpress.net, dantri.com.vn, tuoitre.vn).
 
 ## 3. Dashboard (Thư mục `dashboard/`)
 
-- **Cách chạy:**
+- **Run:**
   1. Mở terminal, truy cập thư mục `dashboard/`.
   2. Chạy lệnh: `npm install`
   3. Khởi động ứng dụng: `npm run dev`
