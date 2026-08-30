@@ -53,8 +53,9 @@ Source (vnexpress.net, dantri.com.vn, tuoitre.vn).
 ## Hạn chế
 
 - Extension đang dùng query selector tĩnh (phụ thuộc vào DOM HTML của báo).
-- Cần tối ưu truy vấn Group By ở Backend khi lượng dữ liệu phình to.
+- Tối ưu truy vấn Group By ở Backend khi lượng dữ liệu phình to.
 - Dashboard giao diện còn ở mức MVP, chưa có tính năng export báo cáo hay lọc theo ngày tháng.
+- Tối ưu syncEvents() khi mất mạng.
 
 ## Quyết định kỹ thuật
 
