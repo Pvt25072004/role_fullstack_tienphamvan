@@ -26,7 +26,9 @@ let EventsService = class EventsService {
         this.eventsGateway = eventsGateway;
     }
     async create(eventDto) {
-        const existing = await this.eventsRepository.findOne({ where: { event_id: eventDto.event_id } });
+        const existing = await this.eventsRepository.findOne({
+            where: { event_id: eventDto.event_id },
+        });
         if (existing) {
             return existing;
         }
@@ -36,7 +38,7 @@ let EventsService = class EventsService {
         return event;
     }
     async getSessions() {
-        return this.eventsRepository
+        const rawSessions = await this.eventsRepository
             .createQueryBuilder('event')
             .select('event.session_id', 'session_id')
             .addSelect('MAX(event.url)', 'url')
@@ -46,6 +48,50 @@ let EventsService = class EventsService {
             .addSelect('MAX(event.timestamp)', 'end_time')
             .groupBy('event.session_id')
             .getRawMany();
+        const allEvents = await this.eventsRepository.find({
+            order: { timestamp: 'ASC' },
+        });
+        const eventsBySession = {};
+        for (const event of allEvents) {
+            if (!eventsBySession[event.session_id]) {
+                eventsBySession[event.session_id] = [];
+            }
+            eventsBySession[event.session_id].push(event);
+        }
+        return rawSessions.map((session) => {
+            const sessionEvents = eventsBySession[session.session_id] || [];
+            let total_reading_time = 0;
+            let isActive = false;
+            let lastActiveTime = 0;
+            for (const event of sessionEvents) {
+                const time = Number(event.timestamp);
+                if (event.event_type === 'PAGE_ENTER' ||
+                    event.event_type === 'PAGE_ACTIVE') {
+                    if (!isActive) {
+                        isActive = true;
+                        lastActiveTime = time;
+                    }
+                }
+                else if (event.event_type === 'PAGE_INACTIVE' ||
+                    event.event_type === 'PAGE_LEAVE') {
+                    if (isActive) {
+                        total_reading_time += time - lastActiveTime;
+                        isActive = false;
+                    }
+                }
+            }
+            if (isActive && sessionEvents.length > 0) {
+                const lastEvent = sessionEvents[sessionEvents.length - 1];
+                const lastTime = Number(lastEvent.timestamp);
+                if (lastTime > lastActiveTime) {
+                    total_reading_time += lastTime - lastActiveTime;
+                }
+            }
+            return {
+                ...session,
+                total_reading_time,
+            };
+        });
     }
     async getArticles() {
         return this.eventsRepository
