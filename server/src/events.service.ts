@@ -84,12 +84,13 @@ export class EventsService {
         }
       }
 
-      if (isActive && sessionEvents.length > 0) {
-        const lastEvent = sessionEvents[sessionEvents.length - 1];
-        const lastTime = Number(lastEvent.timestamp);
-        if (lastTime > lastActiveTime) {
-          total_reading_time += lastTime - lastActiveTime;
-        }
+      // Nếu session kết thúc chưa kịp gửi LEAVE/INACTIVE (hoặc đang đọc)
+      if (isActive) {
+        const now = Date.now();
+        const diff = now - lastActiveTime;
+        // Cộng dồn thời gian đang active hiện tại.
+        // Giới hạn tối đa 30s (bằng IDLE_TIMEOUT của extension) để tránh lỗi trường hợp user tắt máy ngang không gửi event LEAVE
+        total_reading_time += Math.min(diff, 30000);
       }
 
       return {
@@ -106,7 +107,9 @@ export class EventsService {
       .addSelect('MAX(event.title)', 'title')
       .addSelect('MAX(event.domain)', 'domain')
       .addSelect('MAX(event.content)', 'content')
+      .addSelect('MAX(event.timestamp)', 'last_read')
       .groupBy('event.url')
+      .orderBy('last_read', 'DESC')
       .getRawMany();
   }
 }

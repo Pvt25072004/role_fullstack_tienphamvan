@@ -80,12 +80,10 @@ let EventsService = class EventsService {
                     }
                 }
             }
-            if (isActive && sessionEvents.length > 0) {
-                const lastEvent = sessionEvents[sessionEvents.length - 1];
-                const lastTime = Number(lastEvent.timestamp);
-                if (lastTime > lastActiveTime) {
-                    total_reading_time += lastTime - lastActiveTime;
-                }
+            if (isActive) {
+                const now = Date.now();
+                const diff = now - lastActiveTime;
+                total_reading_time += Math.min(diff, 30000);
             }
             return {
                 ...session,
@@ -100,7 +98,9 @@ let EventsService = class EventsService {
             .addSelect('MAX(event.title)', 'title')
             .addSelect('MAX(event.domain)', 'domain')
             .addSelect('MAX(event.content)', 'content')
+            .addSelect('MAX(event.timestamp)', 'last_read')
             .groupBy('event.url')
+            .orderBy('last_read', 'DESC')
             .getRawMany();
     }
 };
